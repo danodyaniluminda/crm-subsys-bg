@@ -4,10 +4,10 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig":{ "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:342262165274:certificate/1c4d3a13-b740-4109-bc85-39e7700b0cf2
-    alb.ingress.kubernetes.io/group.name: crm-subsys
+    alb.ingress.kubernetes.io/group.name: crmsubsys
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
     alb.ingress.kubernetes.io/scheme: internal
-    alb.ingress.kubernetes.io/subnets: subnet-0b243462d90205ea5, subnet-0f5bbeba71d6274f8, subnet-0e23ff116ec9bebd9
+    alb.ingress.kubernetes.io/subnets: subnet-00e9baa73310c358f, subnet-047cbea0c439fe875, subnet-022856e176635c17d
     alb.ingress.kubernetes.io/target-type: ip
     kubernetes.io/ingress.class: alb
   name: crm-subsys-alb-ingress
