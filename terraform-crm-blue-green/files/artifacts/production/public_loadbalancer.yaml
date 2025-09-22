@@ -3,7 +3,7 @@ kind: Ingress
 metadata:
   annotations:
     alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig":{ "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:342262165274:certificate/1c4d3a13-b740-4109-bc85-39e7700b0cf2
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:403466725903:certificate/3fee029f-908a-42d9-9b24-9fc7f31dda8a
     alb.ingress.kubernetes.io/group.name: pub-crmsubsys
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
     alb.ingress.kubernetes.io/scheme: internet-facing
