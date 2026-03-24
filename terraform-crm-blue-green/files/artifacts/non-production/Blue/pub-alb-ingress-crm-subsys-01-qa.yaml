@@ -3,14 +3,14 @@ kind: Ingress
 metadata:
   annotations:
     alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig":{ "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:342262165274:certificate/1c4d3a13-b740-4109-bc85-39e7700b0cf2
-    alb.ingress.kubernetes.io/group.name: pub-digitalcore
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:059523608855:certificate/4c9e3cd8-67ff-4b21-b5b4-0563e0ea73b1
+    alb.ingress.kubernetes.io/group.name: pub-crmsubsys
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
     alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/subnets: subnet-03d292973bf3dd008, subnet-022031cf7cf638f9f, subnet-0ccbd946be20eeff9
+    alb.ingress.kubernetes.io/subnets: subnet-0f142f733d0ff9dc1, subnet-0d4673cd3b6d3df79, subnet-09a2539ee2c6cd571
     alb.ingress.kubernetes.io/target-type: ip
     kubernetes.io/ingress.class: alb
-  name: digital-core-public-alb-ingress
+  name: pub-alb-ingress-crm-subsys-01-qa
   namespace: alb-qa
 spec:
   rules:
