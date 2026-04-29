@@ -3,15 +3,15 @@ kind: Ingress
 metadata:
   annotations:
     alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig":{ "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:059523608855:certificate/f6a3e709-40d1-4ec1-8079-f3be7af06ee5
-    alb.ingress.kubernetes.io/group.name: crmsubsys-dev
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:403466725903:certificate/d31f426e-7b7f-42c5-8dee-751f3f4befba
+    alb.ingress.kubernetes.io/group.name: crmsubsys
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
     alb.ingress.kubernetes.io/scheme: internal
-    alb.ingress.kubernetes.io/subnets: subnet-0742c360192b913cd, subnet-04244b3c459ba8824, subnet-0947425f5c813ba47
+    alb.ingress.kubernetes.io/subnets: subnet-04aa01c98618affdf, subnet-0a18cda38a943d9ca, subnet-0e7ddcc1323936b85
     alb.ingress.kubernetes.io/target-type: ip
     kubernetes.io/ingress.class: alb
-  name: pvt-alb-ingress-crm-subsys-01-dev
-  namespace: alb-dev
+  name: pvt-alb-ingress-crm-subsys-01-prod
+  namespace: alb-prod
 spec:
   rules:
   - http:

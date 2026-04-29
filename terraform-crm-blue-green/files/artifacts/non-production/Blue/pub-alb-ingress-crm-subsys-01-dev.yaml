@@ -7,7 +7,7 @@ metadata:
     alb.ingress.kubernetes.io/group.name: pub-crmsubsys-dev
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
     alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/subnets: subnet-0f142f733d0ff9dc1, subnet-0d4673cd3b6d3df79, subnet-09a2539ee2c6cd571
+    alb.ingress.kubernetes.io/subnets: subnet-0c9744632cb79fad6, subnet-0091f3fb389daee11, subnet-0ae79015fbb7565fe
     alb.ingress.kubernetes.io/target-type: ip
     kubernetes.io/ingress.class: alb
   name: pub-alb-ingress-crm-subsys-01-dev
