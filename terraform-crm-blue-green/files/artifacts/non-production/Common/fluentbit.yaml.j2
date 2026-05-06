@@ -18,6 +18,7 @@ config:
         storage.sync normal
         storage.checksum off
         storage.backlog.mem_limit 5M
+        AWS_EC2_METADATA_DISABLED true
 
   inputs: |
     [INPUT]
@@ -94,16 +95,6 @@ config:
         Rename              MESSAGE                     message
         Remove_regex        ^((?!hostname|systemd_unit|message).)*$
 
-    [FILTER]
-        Name                aws
-        Match               dataplane.*
-        imds_version        v2
-
-    [FILTER]
-        Name                aws
-        Match               host.*
-        imds_version        v2
-
   outputs: |
     [OUTPUT]
         Name                s3
@@ -113,6 +104,7 @@ config:
         store_dir           /var/log/s3-dte
         store_dir_limit_size 300M
         upload_timeout      1m
+        AWS_Auth            IRSA
 
 
     [OUTPUT]
@@ -122,7 +114,7 @@ config:
         log_group_name      /aws/containerinsights/${CLUSTER_NAME}/dataplane
         log_stream_prefix   ${HOST_NAME}-
         auto_create_group   true
-        extra_user_agent    container-insights
+        AWS_Auth            IRSA
 
     [OUTPUT]
         Name                cloudwatch_logs
@@ -131,7 +123,7 @@ config:
         log_group_name      /aws/containerinsights/${CLUSTER_NAME}/host
         log_stream_prefix   ${HOST_NAME}.
         auto_create_group   true
-        extra_user_agent    container-insights
+        AWS_Auth            IRSA
 
 
   customParsers: |
