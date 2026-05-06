@@ -104,7 +104,6 @@ config:
         store_dir           /var/log/s3-dte
         store_dir_limit_size 300M
         upload_timeout      1m
-        AWS_Auth            IRSA
 
 
     [OUTPUT]
@@ -114,7 +113,6 @@ config:
         log_group_name      /aws/containerinsights/${CLUSTER_NAME}/dataplane
         log_stream_prefix   ${HOST_NAME}-
         auto_create_group   true
-        AWS_Auth            IRSA
 
     [OUTPUT]
         Name                cloudwatch_logs
@@ -123,7 +121,6 @@ config:
         log_group_name      /aws/containerinsights/${CLUSTER_NAME}/host
         log_stream_prefix   ${HOST_NAME}.
         auto_create_group   true
-        AWS_Auth            IRSA
 
 
   customParsers: |
