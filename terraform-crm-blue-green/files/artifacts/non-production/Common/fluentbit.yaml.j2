@@ -1,6 +1,8 @@
 serviceAccount:
   create: true
   name: fluentbit-ekstos3-sa
+  annotations:
+    eks.amazonaws.com/role-arn: {{ fluentbit_role_arn }}
 
 config:
   service: |
@@ -94,6 +96,16 @@ config:
         Rename              MESSAGE                     message
         Remove_regex        ^((?!hostname|systemd_unit|message).)*$
 
+    [FILTER]
+        Name                aws
+        Match               dataplane.*
+        imds_version        v2
+
+    [FILTER]
+        Name                aws
+        Match               host.*
+        imds_version        v2
+
   outputs: |
     [OUTPUT]
         Name                s3
@@ -112,6 +124,7 @@ config:
         log_group_name      /aws/containerinsights/${CLUSTER_NAME}/dataplane
         log_stream_prefix   ${HOST_NAME}-
         auto_create_group   true
+        extra_user_agent    container-insights
 
     [OUTPUT]
         Name                cloudwatch_logs
@@ -120,6 +133,7 @@ config:
         log_group_name      /aws/containerinsights/${CLUSTER_NAME}/host
         log_stream_prefix   ${HOST_NAME}.
         auto_create_group   true
+        extra_user_agent    container-insights
 
 
   customParsers: |
