@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:059523608855:certificate/64beac7d-a315-4d96-afd5-477386fc618b
+    alb.ingress.kubernetes.io/group.name: crmsubsys-dev
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+  generation: 3
+  name: monitoring-prometheus
+  namespace: monitoring
+spec:
+  ingressClassName: alb
+  rules:
+  - host: crmsubsysbg.testlogdia.lk
+    http:
+      paths:
+      - backend:
+          service:
+            name: prometheus-dte
+            port:
+              number: 9090
+        path: /prometheus-dte/*
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - crmsubsysbg.testlogdia.lk

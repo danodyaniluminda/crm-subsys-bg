@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig":{ "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:056200465002:certificate/e2bdc33a-7ba2-4571-bc3f-dacbc4838c3c
+    alb.ingress.kubernetes.io/group.name: crmsubsys-rnd
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/subnets: subnet-00836760197d51840, subnet-0c980bee8870f3ceb, subnet-08b5ee9a47a8c74dc
+    alb.ingress.kubernetes.io/target-type: ip
+    kubernetes.io/ingress.class: alb
+  name: pvt-alb-ingress-crm-subsys-rnd
+  namespace: alb-rnd
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: ssl-redirect
+            port:
+              name: use-annotation
+        path: /*
+        pathType: ImplementationSpecific
+      - backend:
+          service:
+            name: nginx-svc
+            port:
+              number: 80
+        path: /loadpage/*
+        pathType: ImplementationSpecific
