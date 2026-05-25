@@ -9,6 +9,7 @@ metadata:
     alb.ingress.kubernetes.io/scheme: internal
     alb.ingress.kubernetes.io/subnets: subnet-004109008f2d68166, subnet-07fcaa3681889cb05, subnet-0e8faf5a1a9430c85
     alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
     kubernetes.io/ingress.class: alb
   name: pvt-alb-ingress-crm-subsys-01-uat
   namespace: alb-uat

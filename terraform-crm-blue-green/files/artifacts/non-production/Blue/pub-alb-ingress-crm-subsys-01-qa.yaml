@@ -9,6 +9,7 @@ metadata:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/subnets: subnet-0c9744632cb79fad6, subnet-0091f3fb389daee11, subnet-0ae79015fbb7565fe
     alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
     kubernetes.io/ingress.class: alb
   name: pub-alb-ingress-crm-subsys-01-qa
   namespace: alb-qa
