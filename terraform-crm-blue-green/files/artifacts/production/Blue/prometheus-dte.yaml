@@ -107,9 +107,6 @@ data:
             action: replace
         kubernetes_sd_configs:
           - role: pod
-            namespaces:
-              names:
-                - dte-prod-pe
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
