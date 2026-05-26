@@ -30,12 +30,12 @@ spec:
             name: ssl-redirect
             port:
               name: use-annotation
-        path: /prometheus-dte
+        path: /prometheus-dte/*
         pathType: ImplementationSpecific
       - backend:
           service:
             name: prometheus-dte
             port:
               number: 9090
-        path: /prometheus-dte
+        path: /prometheus-dte/*
         pathType: ImplementationSpecific
