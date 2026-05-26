@@ -10,7 +10,7 @@ metadata:
     alb.ingress.kubernetes.io/subnets: subnet-04aa01c98618affdf, subnet-0a18cda38a943d9ca, subnet-0e7ddcc1323936b85
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/backend-protocol: HTTP
-    alb.ingress.kubernetes.io/healthcheck-path: /api/v1/status/config
+    alb.ingress.kubernetes.io/healthcheck-path: /prometheus-dte/-/healthy
     alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
     alb.ingress.kubernetes.io/healthcheck-port: traffic-port
     alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
@@ -18,7 +18,7 @@ metadata:
     alb.ingress.kubernetes.io/healthy-threshold-count: '2'
     alb.ingress.kubernetes.io/success-codes: "200"
     kubernetes.io/ingress.class: alb
-  name: prometheus-crm-subsys-ingress
+  name: prometheus-dte-ingress
   namespace: monitoring
 spec:
   rules:
@@ -30,12 +30,12 @@ spec:
             name: ssl-redirect
             port:
               name: use-annotation
-        path: /prometheus/*
+        path: /prometheus-dte
         pathType: ImplementationSpecific
       - backend:
           service:
-            name: prometheus-operator-kube-p-prometheus
+            name: prometheus-dte
             port:
-              number: 9000
-        path: /prometheus/*
+              number: 9090
+        path: /prometheus-dte
         pathType: ImplementationSpecific

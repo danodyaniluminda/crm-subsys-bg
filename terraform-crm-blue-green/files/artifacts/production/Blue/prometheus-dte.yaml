@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-dte-conf
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ebs-gp3-claim
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: prometheus-dte
+  name: prometheus-dte
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-dte
+  template:
+    metadata:
+      labels:
+        app: prometheus-dte
+    spec:
+      initContainers:
+      - name: create-subdir-take-data-dir-ownership
+        image: alpine:3
+        command: ["/bin/sh", "-c"]
+        args: ["chmod 777 /prometheus"]
+        volumeMounts:
+        - mountPath: /prometheus
+          name: storage
+          subPathExpr: prometheus
+      containers:
+      - name: prometheus-dte
+        image: prom/prometheus:v2.43.0
+        args:
+          - --config.file=/etc/prometheus/prometheus.yml
+          - --web.external-url=https://crmsubsysbgb.dialog.lk/prometheus-dte
+        ports:
+        - containerPort: 9090
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 600m
+            memory: 9000Mi
+          requests:
+            cpu: 500m
+            memory: 8000Mi
+        volumeMounts:
+        - mountPath: /etc/prometheus
+          name: prometheus-dte-conf
+          readOnly: true
+        - mountPath: /prometheus
+          name: storage
+          subPathExpr: prometheus
+      volumes:
+      - name: prometheus-dte-conf
+        configMap:
+          name: prometheus-dte-conf
+      - name: storage
+        persistentVolumeClaim:
+          claimName: ebs-gp3-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-dte
+  namespace: monitoring
+spec:
+  selector:
+    app: prometheus-dte
+  ports:
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
