@@ -153,7 +153,7 @@ spec:
         args:
           - --config.file=/etc/prometheus/prometheus.yml
           - --web.external-url=https://crmsubsysbgg.dialog.lk/prometheus-dte
-          - --web.route-prefix=/
+          - --web.route-prefix=/prometheus-dte
         ports:
         - containerPort: 9090
           protocol: TCP
