@@ -6,7 +6,9 @@ metadata:
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:403466725903:certificate/d31f426e-7b7f-42c5-8dee-751f3f4befba
     alb.ingress.kubernetes.io/group.name: pub-crmsubsys
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/manage-backend-security-group-rules: "true"
     alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/security-groups: sg-0153ebeac01c35448
     alb.ingress.kubernetes.io/subnets: subnet-0a4a8100eb9f29d7f, subnet-04182f3b19ed56409, subnet-0eeaf6f483e7673b6
     alb.ingress.kubernetes.io/target-type: ip
     kubernetes.io/ingress.class: alb
