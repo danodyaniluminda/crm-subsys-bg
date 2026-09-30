@@ -1,0 +1,257 @@
+---
+# ===========================================================================
+# playbook-envoy-gateway.yml
+#
+# Installs the Envoy Gateway controller (via Helm OCI chart) on a TKE cluster
+# and applies the GatewayClass + Gateway (HTTP port 80 + HTTPS port 443) CRs.
+#
+# THIS VERSION IS CONFIGURED FOR TLS OFFLOADING TO TENCENT CLB.
+#
+# Called from the `secondary` Terraform layer via TAT on the bastion host.
+#
+# Extravars (all optional — defaults listed below):
+#   envoy_gateway_version  : Helm chart version tag (default: "latest")
+#   gateway_name           : Name of the Gateway CR   (default: tke-external-gateway)
+#   gateway_namespace      : Namespace for the Gateway (default: default)
+#   allowed_namespaces     : "All" or a specific namespace (default: All)
+#   tls_cert_id            : Tencent Certificate Manager ID (e.g. cert-abc12345)
+# ===========================================================================
+- name: Install Envoy Gateway and configure Gateway API (TLS Offload) on TKE
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    # ── Defaults (all overridable via extravars) ──────────────────────────────
+    envoy_gateway_version: "v1.3.3"
+    gateway_name: "envoy-gateway-api"
+    gateway_namespace: "envoy-gateway"
+    allowed_namespaces: "All"
+    tls_cert_id: "ZlDUhlD5"
+    envoy_deployment_name: "envoy-gateway-proxy"
+
+  tasks:
+    # ── 1. Pre-requisites ─────────────────────────────────────────────────────
+    - name: Ensure CLI prerequisites are installed (curl, tar, gzip)
+      ansible.builtin.yum:
+        name:
+          - curl
+          - tar
+          - gzip
+        state: present
+      register: yum_prereqs
+      until: yum_prereqs is succeeded
+      retries: 10
+      delay: 5
+
+    - name: Ensure kubectl is installed
+      ansible.builtin.shell: |
+        if ! command -v kubectl >/dev/null 2>&1; then
+          KUBECTL_VERSION="$(curl -L -s https://dl.k8s.io/release/stable.txt)"
+          curl -L --fail "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" -o /tmp/kubectl
+          install -m 0755 /tmp/kubectl /usr/local/bin/kubectl
+          rm -f /tmp/kubectl
+        fi
+      args:
+        executable: /bin/bash
+
+    - name: Ensure python3-pip is installed
+      ansible.builtin.yum:
+        name: python3-pip
+        state: present
+      register: yum_pip
+      until: yum_pip is succeeded
+      retries: 10
+      delay: 5
+
+    - name: Wait for kubeconfig to be available on the bastion
+      ansible.builtin.wait_for:
+        path: "{{ kubeconfig_path | default('/root/.kube/config') }}"
+        state: present
+        timeout: 180
+
+    # ── 2. Install Helm ───────────────────────────────────────────────────────
+    - name: Ensure helm is installed
+      ansible.builtin.shell: |
+        if ! command -v helm >/dev/null 2>&1; then
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+          chmod 700 get_helm.sh
+          ./get_helm.sh
+          rm -f get_helm.sh
+        fi
+      args:
+        executable: /bin/bash
+
+    # ── 3. Cleanup Legacy Installation ────────────────────────────────────────
+    - name: Clean up legacy manually-applied cluster-scoped resources to prevent Helm conflicts
+      ansible.builtin.shell: |
+        kubectl --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }} delete clusterrole eg-gateway-helm-envoy-gateway-role --ignore-not-found
+        kubectl --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }} delete clusterrolebinding eg-gateway-helm-envoy-gateway-rolebinding --ignore-not-found
+        kubectl --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }} delete validatingwebhookconfiguration eg-envoy-gateway-admission --ignore-not-found
+        kubectl --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }} delete mutatingwebhookconfiguration eg-envoy-gateway-mutation --ignore-not-found
+      args:
+        executable: /bin/bash
+
+    # ── 4. Install Envoy Gateway via Helm OCI ─────────────────────────────────
+    - name: Install Envoy Gateway via Helm OCI
+      ansible.builtin.shell: |
+        helm install eg oci://docker.io/envoyproxy/gateway-helm \
+          --version {{ envoy_gateway_version }} \
+          -n {{ gateway_namespace }} \
+          --create-namespace \
+          --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }}
+      args:
+        executable: /bin/bash
+
+    # ── 5. Wait for controller Deployment to be Available ────────────────────
+    - name: Wait for envoy-gateway Deployment rollout
+      ansible.builtin.shell: |
+        kubectl --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }} \
+          rollout status deployment/envoy-gateway \
+          -n {{ gateway_namespace }} \
+          --timeout=300s
+      args:
+        executable: /bin/bash
+
+    # ── 6. Apply EnvoyProxy config for TLS Offload ────────────────────────────
+    # This instructs the Gateway controller to inject the Tencent CLB annotation
+    # into the generated LoadBalancer Service.
+    - name: Apply EnvoyProxy configuration for CLB TLS Offloading
+      ansible.builtin.shell: |
+        kubectl --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }} apply -f - <<'YAML_EOF'
+        apiVersion: gateway.envoyproxy.io/v1alpha1
+        kind: EnvoyProxy
+        metadata:
+          name: tencent-clb-tls-offload
+          namespace: {{ gateway_namespace }}
+        spec:
+          provider:
+            type: Kubernetes
+            kubernetes:
+              envoyDeployment:
+                name: "{{ envoy_deployment_name }}"
+              envoyService:
+                type: LoadBalancer
+                annotations:
+                  service.cloud.tencent.com/specify-protocol: '{"443":{"protocol":["HTTPS"],"tls":"{{ tls_cert_id }}"}}'
+        YAML_EOF
+      args:
+        executable: /bin/bash
+
+    # ── 7. Apply GatewayClass ─────────────────────────────────────────────────
+    # The GatewayClass is explicitly linked to the EnvoyProxy configuration.
+    - name: Apply GatewayClass 'eg' linked to EnvoyProxy
+      ansible.builtin.shell: |
+        kubectl --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }} apply -f - <<'YAML_EOF'
+        apiVersion: gateway.networking.k8s.io/v1
+        kind: GatewayClass
+        metadata:
+          name: eg
+          labels:
+            managed-by: terraform-tat
+        spec:
+          controllerName: gateway.envoyproxy.io/gatewayclass-controller
+          parametersRef:
+            group: gateway.envoyproxy.io
+            kind: EnvoyProxy
+            name: tencent-clb-tls-offload
+            namespace: {{ gateway_namespace }}
+        YAML_EOF
+      args:
+        executable: /bin/bash
+
+    - name: Wait for GatewayClass to be Accepted (up to 5 min)
+      ansible.builtin.shell: |
+        for i in $(seq 1 30); do
+          STATUS=$(kubectl --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }} \
+            get gatewayclass eg \
+            -o jsonpath='{.status.conditions[?(@.type=="Accepted")].status}' 2>/dev/null)
+          if [ "$STATUS" = "True" ]; then
+            echo "GatewayClass 'eg' is Accepted."
+            exit 0
+          fi
+          echo "Waiting for GatewayClass acceptance... ($i/30)"
+          sleep 10
+        done
+        echo "ERROR: GatewayClass 'eg' was not accepted within 5 minutes."
+        exit 1
+      args:
+        executable: /bin/bash
+
+    # ── 7. Ensure gateway namespace exists ────────────────────────────────────
+    - name: Ensure gateway namespace '{{ gateway_namespace }}' exists
+      ansible.builtin.shell: |
+        kubectl --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }} \
+          create namespace {{ gateway_namespace }} \
+          --dry-run=client -o yaml | \
+          kubectl --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }} apply -f -
+      args:
+        executable: /bin/bash
+
+    # ── 8. Apply Gateway CR (HTTP:80 + Offloaded HTTP:443) ────────────────────
+    # Because TLS is terminated at the CLB, Envoy receives plain HTTP traffic
+    # on port 443. We must configure the listener protocol as HTTP, not HTTPS.
+    - name: Apply Gateway CR with TLS-offloaded listeners
+      ansible.builtin.shell: |
+        kubectl --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }} apply -f - <<YAML_EOF
+        apiVersion: gateway.networking.k8s.io/v1
+        kind: Gateway
+        metadata:
+          name: {{ gateway_name }}
+          namespace: {{ gateway_namespace }}
+          labels:
+            managed-by: terraform-tat
+        spec:
+          gatewayClassName: eg
+          listeners:
+          - name: http
+            protocol: HTTP
+            port: 80
+            allowedRoutes:
+              namespaces:
+                from: {{ allowed_namespaces }}
+          - name: https-offloaded
+            protocol: HTTP
+            port: 443
+            allowedRoutes:
+              namespaces:
+                from: {{ allowed_namespaces }}
+        YAML_EOF
+      args:
+        executable: /bin/bash
+
+    - name: Wait for Gateway to reach Programmed status (up to 5 min)
+      ansible.builtin.shell: |
+        for i in $(seq 1 30); do
+          STATUS=$(kubectl --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }} \
+            get gateway {{ gateway_name }} \
+            -n {{ gateway_namespace }} \
+            -o jsonpath='{.status.conditions[?(@.type=="Programmed")].status}' 2>/dev/null)
+          if [ "$STATUS" = "True" ]; then
+            echo "Gateway '{{ gateway_name }}' is Programmed."
+            break
+          fi
+          echo "Waiting for Gateway to be Programmed... ($i/30)"
+          sleep 10
+        done
+      args:
+        executable: /bin/bash
+
+    # ── 9. Report external CLB address ───────────────────────────────────────
+    - name: Retrieve Gateway external address (CLB public IP)
+      ansible.builtin.shell: |
+        kubectl --kubeconfig {{ kubeconfig_path | default('/root/.kube/config') }} \
+          get gateway {{ gateway_name }} \
+          -n {{ gateway_namespace }} \
+          -o jsonpath='{.status.addresses[*].value}'
+      args:
+        executable: /bin/bash
+      register: gateway_address
+      ignore_errors: true
+
+    - name: Show Gateway external address
+      ansible.builtin.debug:
+        msg: >
+          Gateway '{{ gateway_name }}' external address (CLB IP/hostname):
+          {{ gateway_address.stdout | default('not yet assigned — check CLB provisioning') }}

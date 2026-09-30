@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pvt-alb-ingress-crmsub
+  namespace: alb-qa
+  labels:
+    ingress.cloud.tencent.com/loadbalance-type: INTERNAL
+  annotations:
+    ingress.cloud.tencent.com/direct-access: "true"
+    kubernetes.io/ingress.existLbId: "lb-m2gkjstk"
+    kubernetes.io/ingress.subnetId: "subnet-qx42vuis"
+    ingress.cloud.tencent.com/enable-group: "true"
+    ingress.cloud.tencent.com/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    ingress.cloud.tencent.com/certificate: '[{"hosts": ["nenasa-qa.testlogdia.lk"],"qcloud_cert_id":["an2CuLS3"]}]'
+spec:
+  ingressClassName: qcloud
+  rules:
+    - host: nenasa-qa.testlogdia.lk
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nenasa-frontend-service
+                port:
+                  number: 3000
